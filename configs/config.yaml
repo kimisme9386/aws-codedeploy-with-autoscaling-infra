@@ -1,0 +1,6 @@
+appProps:
+  context:
+    ec2KeyPairAutoGeneration: true
+stackProps:
+  env:
+    region: "ap-northeast-1"
