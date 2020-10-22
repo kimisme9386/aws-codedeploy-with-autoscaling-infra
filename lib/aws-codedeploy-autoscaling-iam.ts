@@ -52,10 +52,6 @@ export default class AwsCodedeployAutoscalingIAM extends cdk.Construct {
       this._codeDeployEC2Role
     );
 
-    new cdk.CfnOutput(this, "TravisCIUserCodedeployInfra", {
-      value: this._travisCICodeDeployInfraUser.userName,
-    });
-
     this._travisCICodeDeployAppUser = this.createTravisCICodeDeployAppUser();
 
     new cdk.CfnOutput(this, "TravisCIUserCodedeployApp", {
