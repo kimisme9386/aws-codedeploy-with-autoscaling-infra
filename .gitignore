@@ -12,3 +12,6 @@ cdk.out
 
 # Jetbrains
 .idea
+
+# vscode
+.vscode
