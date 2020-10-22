@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import "source-map-support/register";
 import * as cdk from "@aws-cdk/core";
-import AwsCodedeployWithAutoScalingInfraStack from "../lib/aws-codedeploy-with-autoscaling-infra-stack";
 import * as fs from "fs";
 import * as yaml from "js-yaml";
+import "source-map-support/register";
+import AwsCodedeployWithAutoScalingInfraStack from "../lib/aws-codedeploy-with-autoscaling-infra-stack";
 
 const config: any = yaml.safeLoad(
   fs.readFileSync("./configs/config.yaml", "utf8")
