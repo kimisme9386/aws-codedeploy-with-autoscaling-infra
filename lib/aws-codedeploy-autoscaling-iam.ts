@@ -89,7 +89,7 @@ export default class AwsCodedeployAutoscalingIAM extends cdk.Construct {
       assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
       managedPolicies: [
         iam.ManagedPolicy.fromAwsManagedPolicyName(
-          "service-role/AmazonSSMManagedInstanceCore"
+          "AmazonSSMManagedInstanceCore"
         ),
       ],
       inlinePolicies: {
@@ -122,7 +122,7 @@ export default class AwsCodedeployAutoscalingIAM extends cdk.Construct {
       userName: "TravisCiUser-Codedeploy-App",
       managedPolicies: [
         iam.ManagedPolicy.fromAwsManagedPolicyName(
-          "service-role/AWSCodeDeployDeployerAccess"
+          "AWSCodeDeployDeployerAccess"
         ),
       ],
     });
