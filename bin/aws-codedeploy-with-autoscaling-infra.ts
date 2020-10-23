@@ -22,7 +22,7 @@ if (!env.region) {
 
 new AwsCodedeployWithAutoScalingInfraStack(
   app,
-  "AwsCodedeployWithEc2InfraStack",
+  "AwsCodedeployWithAutoScalingInfraStack",
   {
     env,
   }
