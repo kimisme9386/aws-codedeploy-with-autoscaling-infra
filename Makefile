@@ -20,11 +20,11 @@ diff:
 	@cdk diff
 
 .PHONY: deploy
-## deploy: deploy stack
+## deploy: deploy stacks
 deploy:
 	@# prevent ci build fail (without std output in 10 min)
 	@if [ ${CI} = "true" ]; \
 	then \
-		while true; do echo "====[ ${SECONDS} seconds still running ]====" ; sleep 60 ; done & \
+		while true; do echo "====[ still running ]====" ; sleep 60 ; done & \
 	fi
-	@cdk deploy --require-approval never
+	@cdk deploy --require-approval never -c region=${DEPLOY_REGION}
