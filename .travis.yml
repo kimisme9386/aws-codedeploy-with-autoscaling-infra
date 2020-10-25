@@ -1,0 +1,36 @@
+language: node_js
+os: linux
+dist: bionic
+
+node_js: 12
+
+cache:
+  npm: true
+
+env:
+  global:
+    - DEPLOY_REGION=ap-northeast-1
+
+install:
+  - make install
+
+script:
+  - make build
+
+before_deploy:
+  - make bootstrap
+  - make diff
+
+deploy:
+  provider: script
+  cleanup: true
+  script: cd ${TRAVIS_BUILD_DIR} && make deploy
+  on:
+    branch:
+      - master
+
+notifications:
+  email: false
+  slack:
+    on_success: never
+    secure: hUY16pUnhAt9DFxQFdZWLLELxSxuD8wd6lxBOcnZpyk4a6/i4TjmhAZPoj1tDAxsrAaE1YwF3GpDEZYR3Dzlqq3mZSL3Iv7B6j8X5+ow+GzAEquNu0DkfsKhYHRw1neoe8TEyni+ruouTN/vxNtSbAVIEPdqe5HbzjjtHkyN8BKnFnVrUobxQyY5L6bx04l2hC0FPPmo9XlCzAm3bIIVJqbyQxr1FU2wNh67SdN4BdTUAXS+74LFU9KJsuweMREiG7QPUVBhAueNoPLbFxVXrX9zBVJd56BNp9lTWRUpabiO2/5xP0j42ygfCYeLE2nDcbnT3jdgC9I+6SsLt5+QKhJvv4UPF7CtLjSxzpAVJ1+n8nhIYrDnh0Daj8rALqBU61oJTRqFd6FHtlPZue/aphbmkTQqP45wf9vqUJ0wW58FsjT8n2FoLZVk93qlUuNC4v768EPaFJK8IKVlPgJPLxSRM4p554P9HLLJHpBzL6J98hX2+fH41vbeMaVF/dxQyc/muY+lPd2HtZTXYWz+FLUzyqt6Kjx0CijVuvG/LbXcgZQ/1mB6eGs1zszooHK8rdshcHycIK7z6rNaXQ/8fQ78/fKLU9qLVxCSb0kkHfTDTsdlT9j8HDOgY25HypUnyBFzzBGTdOl3jjRBBY+wNkXd69L8nVTZd6u+ySH9wLI=

@@ -1,0 +1,30 @@
+.PHONY: install
+## install: install dependencies
+install:
+	@npm install -g aws-cdk@1.64.1
+	@npm install
+
+.PHONY: build
+## build: build stack
+build:
+	@npm run build
+
+.PHONY: bootstrap
+## bootstrap: deploys the CDK toolkit stack into an AWS environment
+bootstrap:
+	@cdk bootstrap
+
+.PHONY: diff
+## diff: compares the specified stack with the deployed stack or a local template file
+diff:
+	@cdk diff
+
+.PHONY: deploy
+## deploy: deploy stack
+deploy:
+	@# prevent ci build fail (without std output in 10 min)
+	@if [ ${CI} = "true" ]; \
+	then \
+		while true; do echo "====[ ${SECONDS} seconds still running ]====" ; sleep 60 ; done & \
+	fi
+	@cdk deploy --require-approval never
