@@ -12,12 +12,12 @@ build:
 .PHONY: bootstrap
 ## bootstrap: deploys the CDK toolkit stack into an AWS environment
 bootstrap:
-	@cdk bootstrap
+	@cdk bootstrap -c region=${DEPLOY_REGION}
 
 .PHONY: diff
 ## diff: compares the specified stack with the deployed stack or a local template file
 diff:
-	@cdk diff
+	@cdk diff -c region=${DEPLOY_REGION}
 
 .PHONY: deploy
 ## deploy: deploy stacks
