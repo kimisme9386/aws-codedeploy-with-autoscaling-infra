@@ -16,10 +16,6 @@ const env = {
   account: app.node.tryGetContext("account") || process.env.CDK_DEFAULT_ACCOUNT,
 };
 
-if (!env.region) {
-  env.region = config.stackProps.env.region;
-}
-
 new AwsCodedeployWithAutoScalingInfraStack(
   app,
   "AwsCodedeployWithAutoScalingInfraStack",
