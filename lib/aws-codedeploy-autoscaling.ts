@@ -43,6 +43,8 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
       },
     });
 
+    cfnSSMInstallPHP.node.addDependency(cfnSSMInstallCodeDeployAgent);
+
     const cfnLaunchConfiguration = new autoscaling.CfnLaunchConfiguration(
       this,
       "ASG-config",
