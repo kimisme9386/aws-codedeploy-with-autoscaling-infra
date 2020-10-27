@@ -43,8 +43,6 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
       },
     });
 
-    cfnSSMInstallPHP.node.addDependency(cfnSSMInstallCodeDeployAgent);
-
     const cfnLaunchConfiguration = new autoscaling.CfnLaunchConfiguration(
       this,
       "ASG-config",
@@ -76,10 +74,6 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
       tags: [{ key: "Name", value: "CodeDeployDemo", propagateAtLaunch: true }],
     });
 
-    cfnAsg.addDependsOn(cfnSSMInstallCodeDeployAgent);
-    cfnAsg.addDependsOn(cfnLaunchConfiguration);
-    cfnAsg.addDependsOn(cfnSSMInstallPHP);
-
     const application = new codedeploy.ServerApplication(
       this,
       "CodeDeployApplication",
@@ -105,6 +99,12 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
       }
     );
 
+    /**
+     * order of execution
+     */
+    cfnAsg.addDependsOn(cfnLaunchConfiguration);
+    cfnSSMInstallPHP.node.addDependency(cfnAsg);
+    cfnSSMInstallCodeDeployAgent.node.addDependency(cfnSSMInstallPHP);
     deploymentGroup.addDependsOn(cfnAsg);
   }
 }
