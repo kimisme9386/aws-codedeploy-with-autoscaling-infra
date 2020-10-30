@@ -31,6 +31,16 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
       }
     );
 
+    const waitConditionHandler = new cdk.CfnWaitConditionHandle(
+      this,
+      "waitConditionHandler"
+    );
+
+    const waitCondition = new cdk.CfnWaitCondition(this, "waitCondition", {
+      handle: waitConditionHandler.ref,
+      timeout: "600",
+    });
+
     const cfnSSMInstallPHP = new ssm.CfnAssociation(this, "ASG-SSM-PHP", {
       name: "AWS-RunShellScript",
       targets: [{ key: "tag:Name", values: ["CodeDeployDemo"] }],
@@ -39,9 +49,15 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
           "add-apt-repository ppa:ondrej/php",
           "apt-get update",
           "apt -y install php7.4",
+          cdk.Fn.join("", [
+            "/opt/aws/bin/cfn-signal -e $? -d 'Install php7.4 completed' -r 'Install php7.4 completed ",
+            waitConditionHandler.ref,
+          ]),
         ],
       },
     });
+
+    waitCondition.addDependsOn(cfnSSMInstallPHP);
 
     const cfnLaunchConfiguration = new autoscaling.CfnLaunchConfiguration(
       this,
@@ -106,6 +122,6 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
     cfnSSMInstallPHP.addDependsOn(cfnAsg);
     cfnSSMInstallCodeDeployAgent.addDependsOn(cfnAsg);
     deploymentGroup.addDependsOn(cfnAsg);
-    cfnSSMInstallPHP.addDependsOn(cfnSSMInstallCodeDeployAgent);
+    cfnSSMInstallCodeDeployAgent.addDependsOn(cfnSSMInstallPHP);
   }
 }
