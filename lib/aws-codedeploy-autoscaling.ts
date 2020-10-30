@@ -103,8 +103,9 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
      * order of execution
      */
     cfnAsg.addDependsOn(cfnLaunchConfiguration);
-    cfnSSMInstallPHP.node.addDependency(cfnAsg);
-    cfnSSMInstallCodeDeployAgent.node.addDependency(cfnSSMInstallPHP);
+    cfnSSMInstallPHP.addDependsOn(cfnAsg);
+    cfnSSMInstallCodeDeployAgent.addDependsOn(cfnAsg);
     deploymentGroup.addDependsOn(cfnAsg);
+    cfnSSMInstallPHP.addDependsOn(cfnSSMInstallCodeDeployAgent);
   }
 }
