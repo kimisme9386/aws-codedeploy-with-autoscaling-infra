@@ -13,6 +13,22 @@ interface AwsCodedeployAutoscalingProp {
 }
 
 export default class AwsCodedeployAutoscaling extends cdk.Construct {
+  private _region: string;
+
+  protected _cfnSSMInstallCodeDeployAgent: ssm.CfnAssociation;
+
+  protected _cfnSSMInstallPHP: ssm.CfnAssociation;
+
+  protected _cfnLaunchConfiguration: autoscaling.CfnLaunchConfiguration;
+
+  protected _codedeployVpc: ec2.Vpc;
+
+  protected _cfnAsg: autoscaling.CfnAutoScalingGroup;
+
+  protected _application: codedeploy.ServerApplication;
+
+  protected _cfnDeploymentGroup: codedeploy.CfnDeploymentGroup;
+
   constructor(
     scope: cdk.Construct,
     id: string,
@@ -20,17 +36,52 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
   ) {
     super(scope, id);
 
-    const cfnSSMInstallCodeDeployAgent = new ssm.CfnAssociation(
-      this,
-      "ASG-SSM-CodeDeployAgent",
-      {
-        name: "AWS-ConfigureAWSPackage",
-        targets: [{ key: "tag:Name", values: ["CodeDeployDemo"] }],
-        parameters: { action: ["Install"], name: ["AWSCodeDeployAgent"] },
-        scheduleExpression: "cron(0 18 ? * SUN *)",
-      }
+    this._region = cdk.Stack.of(scope).region;
+
+    this._cfnSSMInstallCodeDeployAgent = this.createCfnSSMInstallCodeDeployAgent();
+
+    this._cfnSSMInstallPHP = this.createCfnSSMInstallPHPAndWaitCondition();
+
+    this._cfnLaunchConfiguration = this.createCfnLaunchConfiguration(
+      props.awsCodedeployAutoscalingIAM.codeDeployEC2InstanceProfile
+        .instanceProfileName
     );
 
+    this._codedeployVpc = this.createCodedeployVpc();
+
+    this._cfnAsg = this.createCfnAsg(
+      this._cfnLaunchConfiguration.launchConfigurationName,
+      this._codedeployVpc
+    );
+
+    this._application = this.createApplication();
+
+    this._cfnDeploymentGroup = this.createDeploymentGroup(
+      this._application.applicationName,
+      props.awsCodedeployAutoscalingIAM.codeDeployServiceRole.roleArn,
+      <string>this._cfnAsg.autoScalingGroupName
+    );
+
+    /**
+     * order of execution
+     */
+    this._cfnAsg.addDependsOn(this._cfnLaunchConfiguration);
+    this._cfnSSMInstallPHP.addDependsOn(this._cfnAsg);
+    this._cfnSSMInstallCodeDeployAgent.addDependsOn(this._cfnAsg);
+    this._cfnDeploymentGroup.addDependsOn(this._cfnAsg);
+    this._cfnSSMInstallCodeDeployAgent.addDependsOn(this._cfnSSMInstallPHP);
+  }
+
+  protected createCfnSSMInstallCodeDeployAgent(): ssm.CfnAssociation {
+    return new ssm.CfnAssociation(this, "ASG-SSM-CodeDeployAgent", {
+      name: "AWS-ConfigureAWSPackage",
+      targets: [{ key: "tag:Name", values: ["CodeDeployDemo"] }],
+      parameters: { action: ["Install"], name: ["AWSCodeDeployAgent"] },
+      scheduleExpression: "cron(0 18 ? * SUN *)",
+    });
+  }
+
+  protected createCfnSSMInstallPHPAndWaitCondition(): ssm.CfnAssociation {
     const waitConditionHandler = new cdk.CfnWaitConditionHandle(
       this,
       "waitConditionHandler"
@@ -59,69 +110,70 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
 
     waitCondition.addDependsOn(cfnSSMInstallPHP);
 
-    const cfnLaunchConfiguration = new autoscaling.CfnLaunchConfiguration(
-      this,
-      "ASG-config",
-      {
-        launchConfigurationName: "CodeDeployDemo-AS-Configuration",
-        imageId: "ami-01c36f3329957b16a",
-        instanceType: "t3.micro",
-        iamInstanceProfile:
-          props.awsCodedeployAutoscalingIAM.codeDeployEC2InstanceProfile
-            .instanceProfileName,
-      }
-    );
+    return cfnSSMInstallPHP;
+  }
 
-    const codedeployVpc = new ec2.Vpc(this, "codedeploy-vpc", {
+  protected createCfnLaunchConfiguration(
+    iamInstanceProfile: string | undefined
+  ): autoscaling.CfnLaunchConfiguration {
+    return new autoscaling.CfnLaunchConfiguration(this, "ASG-config", {
+      launchConfigurationName: "CodeDeployDemo-AS-Configuration",
+      imageId: "ami-01c36f3329957b16a",
+      instanceType: "t3.micro",
+      iamInstanceProfile: iamInstanceProfile,
+    });
+  }
+
+  protected createCodedeployVpc(): ec2.Vpc {
+    return new ec2.Vpc(this, "codedeploy-vpc", {
       cidr: "10.0.0.0/16",
       natGateways: 0,
       maxAzs: 4,
     });
+  }
 
-    const cfnAsg = new autoscaling.CfnAutoScalingGroup(this, "ASG", {
+  protected createCfnAsg(
+    launchConfigurationName: string | undefined,
+    vpc: ec2.Vpc
+  ): autoscaling.CfnAutoScalingGroup {
+    return new autoscaling.CfnAutoScalingGroup(this, "ASG", {
       autoScalingGroupName: "ASG-with-codedeploy",
       minSize: "6",
       maxSize: "8",
-      launchConfigurationName: cfnLaunchConfiguration.launchConfigurationName,
-      availabilityZones: cdk.Fn.getAzs(cdk.Stack.of(scope).region),
-      vpcZoneIdentifier: codedeployVpc.selectSubnets({
+      launchConfigurationName,
+      availabilityZones: cdk.Fn.getAzs(this._region),
+      vpcZoneIdentifier: vpc.selectSubnets({
         subnetType: ec2.SubnetType.PUBLIC,
       }).subnetIds,
       tags: [{ key: "Name", value: "CodeDeployDemo", propagateAtLaunch: true }],
     });
+  }
 
-    const application = new codedeploy.ServerApplication(
-      this,
-      "CodeDeployApplication",
-      {
-        applicationName: "LumenApp",
-      }
-    );
+  protected createApplication(): codedeploy.ServerApplication {
+    return new codedeploy.ServerApplication(this, "CodeDeployApplication", {
+      applicationName: "LumenApp",
+    });
+  }
 
-    const deploymentGroup = new codedeploy.CfnDeploymentGroup(
+  protected createDeploymentGroup(
+    applicationName: string,
+    serviceRoleArn: string,
+    autoScalingGroupName: string
+  ): codedeploy.CfnDeploymentGroup {
+    return new codedeploy.CfnDeploymentGroup(
       this,
       "CodeDeployDeploymentGroup",
       {
-        applicationName: application.applicationName,
-        serviceRoleArn:
-          props.awsCodedeployAutoscalingIAM.codeDeployServiceRole.roleArn,
+        applicationName,
+        serviceRoleArn,
         deploymentConfigName:
           codedeploy.ServerDeploymentConfig.ONE_AT_A_TIME.deploymentConfigName,
         deploymentGroupName: "Master",
-        autoScalingGroups: [<string>cfnAsg.autoScalingGroupName],
+        autoScalingGroups: [autoScalingGroupName],
         // deploymentStyle: {
         //   deploymentType: "BLUE_GREEN",
         // },
       }
     );
-
-    /**
-     * order of execution
-     */
-    cfnAsg.addDependsOn(cfnLaunchConfiguration);
-    cfnSSMInstallPHP.addDependsOn(cfnAsg);
-    cfnSSMInstallCodeDeployAgent.addDependsOn(cfnAsg);
-    deploymentGroup.addDependsOn(cfnAsg);
-    cfnSSMInstallCodeDeployAgent.addDependsOn(cfnSSMInstallPHP);
   }
 }
