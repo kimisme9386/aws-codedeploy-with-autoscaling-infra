@@ -93,7 +93,7 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
 
     this._cfnWaitCondition = new cdk.CfnWaitCondition(this, "waitCondition", {
       handle: waitConditionHandler.ref,
-      timeout: "1800",
+      timeout: "1200",
     });
 
     const cfnSSMInstallPHP = new ssm.CfnAssociation(this, "ASG-SSM-PHP", {
@@ -101,6 +101,7 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
       targets: [{ key: "tag:Name", values: ["CodeDeployDemo"] }],
       parameters: {
         commands: [
+          "apt -y install software-properties-common",
           "add-apt-repository ppa:ondrej/php",
           "apt-get update",
           "apt -y install php7.4",
