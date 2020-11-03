@@ -93,7 +93,7 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
 
     this._cfnWaitCondition = new cdk.CfnWaitCondition(this, "waitCondition", {
       handle: waitConditionHandler.ref,
-      timeout: "600",
+      timeout: "1800",
     });
 
     const cfnSSMInstallPHP = new ssm.CfnAssociation(this, "ASG-SSM-PHP", {
