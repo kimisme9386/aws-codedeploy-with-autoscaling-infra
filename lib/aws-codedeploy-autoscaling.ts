@@ -19,6 +19,8 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
 
   protected _cfnSSMInstallPHP: ssm.CfnAssociation;
 
+  protected _cfnWaitCondition: cdk.CfnWaitCondition;
+
   protected _cfnLaunchConfiguration: autoscaling.CfnLaunchConfiguration;
 
   protected _codedeployVpc: ec2.Vpc;
@@ -69,7 +71,7 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
      */
     this._cfnAsg.addDependsOn(this._cfnLaunchConfiguration);
     this._cfnSSMInstallPHP.addDependsOn(this._cfnAsg);
-    this._cfnSSMInstallCodeDeployAgent.addDependsOn(this._cfnAsg);
+    this._cfnSSMInstallCodeDeployAgent.addDependsOn(this._cfnWaitCondition);
     this._cfnDeploymentGroup.addDependsOn(this._cfnAsg);
     this._cfnSSMInstallCodeDeployAgent.addDependsOn(this._cfnSSMInstallPHP);
   }
@@ -89,7 +91,7 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
       "waitConditionHandler"
     );
 
-    const waitCondition = new cdk.CfnWaitCondition(this, "waitCondition", {
+    this._cfnWaitCondition = new cdk.CfnWaitCondition(this, "waitCondition", {
       handle: waitConditionHandler.ref,
       timeout: "600",
     });
@@ -103,14 +105,14 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
           "apt-get update",
           "apt -y install php7.4",
           cdk.Fn.join("", [
-            "/opt/aws/bin/cfn-signal -e $? -d 'Install php7.4 completed' -r 'Install php7.4 completed ",
+            "/opt/aws/bin/cfn-signal -e $? -d 'Install php7.4 completed' -r 'Install php7.4 completed' ",
             waitConditionHandler.ref,
           ]),
         ],
       },
     });
 
-    waitCondition.addDependsOn(cfnSSMInstallPHP);
+    this._cfnWaitCondition.addDependsOn(cfnSSMInstallPHP);
 
     return cfnSSMInstallPHP;
   }
