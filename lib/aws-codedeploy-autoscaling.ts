@@ -54,6 +54,8 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
       this._codedeployVpc
     );
 
+    this.attachUserDataForCfnLaunchConfiguration(this._cfnAsg.logicalId);
+
     this._application = this.createApplication();
 
     this._cfnDeploymentGroup = this.createDeploymentGroup(
@@ -136,7 +138,7 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
     launchConfigurationName: string | undefined,
     vpc: ec2.Vpc
   ): autoscaling.CfnAutoScalingGroup {
-    return new autoscaling.CfnAutoScalingGroup(this, "ASG", {
+    const cfnAsg = new autoscaling.CfnAutoScalingGroup(this, "ASG", {
       autoScalingGroupName: "ASG-with-codedeploy",
       minSize: "6",
       maxSize: "8",
@@ -147,6 +149,35 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
       }).subnetIds,
       tags: [{ key: "Name", value: "CodeDeployDemo", propagateAtLaunch: true }],
     });
+
+    cfnAsg.cfnOptions.creationPolicy = {
+      resourceSignal: {
+        count: 6,
+        timeout: "PT5M",
+      },
+    };
+
+    return cfnAsg;
+  }
+
+  protected attachUserDataForCfnLaunchConfiguration(
+    asgResourceId: string
+  ): void {
+    this._cfnLaunchConfiguration.userData = cdk.Fn.base64(
+      cdk.Fn.join("\n", [
+        "#!/bin/bash -xe",
+        "apt-get update -y",
+        "apt-get install -y python-setuptools",
+        "mkdir -p /opt/aws/bin",
+        "wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz",
+        "python -m easy_install --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz",
+        cdk.Fn.sub(
+          "/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource " +
+            asgResourceId +
+            " --region ${AWS::Region}"
+        ),
+      ])
+    );
   }
 
   protected createApplication(): codedeploy.ServerApplication {
