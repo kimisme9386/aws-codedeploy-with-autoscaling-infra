@@ -102,8 +102,6 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
       parameters: {
         commands: [
           "apt -y install dialog apt-utils",
-          "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections",
-          "apt-get install -y -q",
           "apt -y install software-properties-common",
           "add-apt-repository -y ppa:ondrej/php",
           "apt-get update",
