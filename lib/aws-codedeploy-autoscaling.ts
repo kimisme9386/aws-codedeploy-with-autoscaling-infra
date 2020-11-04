@@ -109,8 +109,9 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
           "apt-get update",
           "apt -y install php7.4",
           cdk.Fn.join("", [
-            "/opt/aws/bin/cfn-signal -e $? -d 'Install php7.4 completed' -r 'Install php7.4 completed' ",
+            "/opt/aws/bin/cfn-signal -e $? -d 'Install php7.4 completed' -r 'Install php7.4 completed' '",
             waitConditionHandler.ref,
+            "'",
           ]),
         ],
       },
