@@ -102,7 +102,7 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
       parameters: {
         commands: [
           "apt -y install software-properties-common",
-          "add-apt-repository ppa:ondrej/php",
+          "add-apt-repository -y ppa:ondrej/php",
           "apt-get update",
           "apt -y install php7.4",
           cdk.Fn.join("", [
@@ -123,7 +123,7 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
   ): autoscaling.CfnLaunchConfiguration {
     return new autoscaling.CfnLaunchConfiguration(this, "ASG-config", {
       launchConfigurationName: "CodeDeployDemo-AS-Configuration",
-      imageId: "ami-01c36f3329957b16a",
+      imageId: "ami-02b658ac34935766f",
       instanceType: "t3.micro",
       iamInstanceProfile: iamInstanceProfile,
     });
