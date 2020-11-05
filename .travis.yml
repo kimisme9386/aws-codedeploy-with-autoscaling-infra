@@ -1,6 +1,7 @@
 language: node_js
 os: linux
 dist: bionic
+arch: arm64-graviton2
 
 node_js: 12
 
