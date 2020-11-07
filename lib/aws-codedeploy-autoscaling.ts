@@ -1,9 +1,9 @@
-import * as autoscaling from "@aws-cdk/aws-autoscaling";
-import * as codedeploy from "@aws-cdk/aws-codedeploy";
-import * as ec2 from "@aws-cdk/aws-ec2";
-import * as ssm from "@aws-cdk/aws-ssm";
-import * as cdk from "@aws-cdk/core";
-import AwsCodedeployAutoscalingIAM from "./aws-codedeploy-autoscaling-iam";
+import * as autoscaling from '@aws-cdk/aws-autoscaling';
+import * as codedeploy from '@aws-cdk/aws-codedeploy';
+import * as ec2 from '@aws-cdk/aws-ec2';
+import * as ssm from '@aws-cdk/aws-ssm';
+import * as cdk from '@aws-cdk/core';
+import AwsCodedeployAutoscalingIAM from './aws-codedeploy-autoscaling-iam';
 
 interface AwsCodedeployAutoscalingProp {
   /**
@@ -77,39 +77,39 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
   }
 
   protected createCfnSSMInstallCodeDeployAgent(): ssm.CfnAssociation {
-    return new ssm.CfnAssociation(this, "ASG-SSM-CodeDeployAgent", {
-      name: "AWS-ConfigureAWSPackage",
-      targets: [{ key: "tag:Name", values: ["CodeDeployDemo"] }],
-      parameters: { action: ["Install"], name: ["AWSCodeDeployAgent"] },
-      scheduleExpression: "cron(0 18 ? * SUN *)",
+    return new ssm.CfnAssociation(this, 'ASG-SSM-CodeDeployAgent', {
+      name: 'AWS-ConfigureAWSPackage',
+      targets: [{ key: 'tag:Name', values: ['CodeDeployDemo'] }],
+      parameters: { action: ['Install'], name: ['AWSCodeDeployAgent'] },
+      scheduleExpression: 'cron(0 18 ? * SUN *)',
     });
   }
 
   protected createCfnSSMInstallPHPAndWaitCondition(): ssm.CfnAssociation {
     const waitConditionHandler = new cdk.CfnWaitConditionHandle(
       this,
-      "waitConditionHandler"
+      'waitConditionHandler'
     );
 
-    this._cfnWaitCondition = new cdk.CfnWaitCondition(this, "waitCondition", {
+    this._cfnWaitCondition = new cdk.CfnWaitCondition(this, 'waitCondition', {
       handle: waitConditionHandler.ref,
-      timeout: "1200",
+      timeout: '1200',
     });
 
-    const cfnSSMInstallPHP = new ssm.CfnAssociation(this, "ASG-SSM-PHP", {
-      name: "AWS-RunShellScript",
-      targets: [{ key: "tag:Name", values: ["CodeDeployDemo"] }],
+    const cfnSSMInstallPHP = new ssm.CfnAssociation(this, 'ASG-SSM-PHP', {
+      name: 'AWS-RunShellScript',
+      targets: [{ key: 'tag:Name', values: ['CodeDeployDemo'] }],
       parameters: {
         commands: [
-          "apt -y install dialog apt-utils",
-          "apt -y install software-properties-common",
-          "add-apt-repository -y ppa:ondrej/php",
-          "apt-get update",
-          "apt -y install php7.4",
-          cdk.Fn.join("", [
-            "/opt/aws/bin/cfn-signal -e $? -d 'Install php7.4 completed' -r 'Install php7.4 completed' '",
+          'apt -y install dialog apt-utils',
+          'apt -y install software-properties-common',
+          'add-apt-repository -y ppa:ondrej/php',
+          'apt-get update',
+          'apt -y install php7.4',
+          cdk.Fn.join('', [
+            '/opt/aws/bin/cfn-signal -e $? -d \'Install php7.4 completed\' -r \'Install php7.4 completed\' \'',
             waitConditionHandler.ref,
-            "'",
+            '\'',
           ]),
         ],
       },
@@ -123,17 +123,17 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
   protected createCfnLaunchConfiguration(
     iamInstanceProfile: string | undefined
   ): autoscaling.CfnLaunchConfiguration {
-    return new autoscaling.CfnLaunchConfiguration(this, "ASG-config", {
-      launchConfigurationName: "CodeDeployDemo-AS-Configuration",
-      imageId: "ami-02b658ac34935766f",
-      instanceType: "t3.micro",
+    return new autoscaling.CfnLaunchConfiguration(this, 'ASG-config', {
+      launchConfigurationName: 'CodeDeployDemo-AS-Configuration',
+      imageId: 'ami-02b658ac34935766f',
+      instanceType: 't3.micro',
       iamInstanceProfile: iamInstanceProfile,
     });
   }
 
   protected createCodedeployVpc(): ec2.Vpc {
-    return new ec2.Vpc(this, "codedeploy-vpc", {
-      cidr: "10.0.0.0/16",
+    return new ec2.Vpc(this, 'codedeploy-vpc', {
+      cidr: '10.0.0.0/16',
       natGateways: 0,
       maxAzs: 4,
     });
@@ -143,22 +143,22 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
     launchConfigurationName: string | undefined,
     vpc: ec2.Vpc
   ): autoscaling.CfnAutoScalingGroup {
-    const cfnAsg = new autoscaling.CfnAutoScalingGroup(this, "ASG", {
-      autoScalingGroupName: "ASG-with-codedeploy",
-      minSize: "6",
-      maxSize: "8",
+    const cfnAsg = new autoscaling.CfnAutoScalingGroup(this, 'ASG', {
+      autoScalingGroupName: 'ASG-with-codedeploy',
+      minSize: '6',
+      maxSize: '8',
       launchConfigurationName,
       availabilityZones: cdk.Fn.getAzs(this._region),
       vpcZoneIdentifier: vpc.selectSubnets({
         subnetType: ec2.SubnetType.PUBLIC,
       }).subnetIds,
-      tags: [{ key: "Name", value: "CodeDeployDemo", propagateAtLaunch: true }],
+      tags: [{ key: 'Name', value: 'CodeDeployDemo', propagateAtLaunch: true }],
     });
 
     cfnAsg.cfnOptions.creationPolicy = {
       resourceSignal: {
         count: 6,
-        timeout: "PT5M",
+        timeout: 'PT5M',
       },
     };
 
@@ -169,25 +169,25 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
     asgResourceId: string
   ): void {
     this._cfnLaunchConfiguration.userData = cdk.Fn.base64(
-      cdk.Fn.join("\n", [
-        "#!/bin/bash -xe",
-        "apt-get update -y",
-        "apt-get install -y python-setuptools",
-        "mkdir -p /opt/aws/bin",
-        "wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz",
-        "python -m easy_install --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz",
+      cdk.Fn.join('\n', [
+        '#!/bin/bash -xe',
+        'apt-get update -y',
+        'apt-get install -y python-setuptools',
+        'mkdir -p /opt/aws/bin',
+        'wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz',
+        'python -m easy_install --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz',
         cdk.Fn.sub(
-          "/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource " +
+          '/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ' +
             asgResourceId +
-            " --region ${AWS::Region}"
+            ' --region ${AWS::Region}'
         ),
       ])
     );
   }
 
   protected createApplication(): codedeploy.ServerApplication {
-    return new codedeploy.ServerApplication(this, "CodeDeployApplication", {
-      applicationName: "LumenApp",
+    return new codedeploy.ServerApplication(this, 'CodeDeployApplication', {
+      applicationName: 'LumenApp',
     });
   }
 
@@ -198,13 +198,13 @@ export default class AwsCodedeployAutoscaling extends cdk.Construct {
   ): codedeploy.CfnDeploymentGroup {
     return new codedeploy.CfnDeploymentGroup(
       this,
-      "CodeDeployDeploymentGroup",
+      'CodeDeployDeploymentGroup',
       {
         applicationName,
         serviceRoleArn,
         deploymentConfigName:
           codedeploy.ServerDeploymentConfig.ONE_AT_A_TIME.deploymentConfigName,
-        deploymentGroupName: "Master",
+        deploymentGroupName: 'Master',
         autoScalingGroups: [autoScalingGroupName],
         // deploymentStyle: {
         //   deploymentType: "BLUE_GREEN",
