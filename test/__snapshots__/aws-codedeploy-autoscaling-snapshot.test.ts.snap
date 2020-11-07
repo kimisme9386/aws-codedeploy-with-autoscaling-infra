@@ -1,0 +1,700 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Create codedeploy IAM role and user 1`] = `
+Object {
+  "Outputs": Object {
+    "TestCodeDeployIAMTravisCIUserCodedeployApp16FE3122": Object {
+      "Value": Object {
+        "Ref": "TestCodeDeployIAMTravisCIUserCodedeployAppC2FB33F4",
+      },
+    },
+  },
+  "Resources": Object {
+    "CodeDeploymentBucket072AA3C8": Object {
+      "DeletionPolicy": "Retain",
+      "Type": "AWS::S3::Bucket",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "TestCodeDeployASGBC851ECA": Object {
+      "CreationPolicy": Object {
+        "ResourceSignal": Object {
+          "Count": 6,
+          "Timeout": "PT5M",
+        },
+      },
+      "DependsOn": Array [
+        "TestCodeDeployASGconfig4DD7142A",
+      ],
+      "Properties": Object {
+        "AutoScalingGroupName": "ASG-with-codedeploy",
+        "AvailabilityZones": Object {
+          "Fn::GetAZs": Object {
+            "Ref": "AWS::Region",
+          },
+        },
+        "LaunchConfigurationName": "CodeDeployDemo-AS-Configuration",
+        "MaxSize": "8",
+        "MinSize": "6",
+        "Tags": Array [
+          Object {
+            "Key": "Name",
+            "PropagateAtLaunch": true,
+            "Value": "CodeDeployDemo",
+          },
+        ],
+        "VPCZoneIdentifier": Array [
+          Object {
+            "Ref": "TestCodeDeploycodedeployvpcPublicSubnet1Subnet51FFA180",
+          },
+          Object {
+            "Ref": "TestCodeDeploycodedeployvpcPublicSubnet2SubnetF4BAFFC8",
+          },
+        ],
+      },
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+    },
+    "TestCodeDeployASGSSMCodeDeployAgentBF30D7FD": Object {
+      "DependsOn": Array [
+        "TestCodeDeployASGSSMPHPAA77B390",
+        "TestCodeDeploywaitCondition4E1C69DB",
+      ],
+      "Properties": Object {
+        "Name": "AWS-ConfigureAWSPackage",
+        "Parameters": Object {
+          "action": Array [
+            "Install",
+          ],
+          "name": Array [
+            "AWSCodeDeployAgent",
+          ],
+        },
+        "ScheduleExpression": "cron(0 18 ? * SUN *)",
+        "Targets": Array [
+          Object {
+            "Key": "tag:Name",
+            "Values": Array [
+              "CodeDeployDemo",
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::SSM::Association",
+    },
+    "TestCodeDeployASGSSMPHPAA77B390": Object {
+      "DependsOn": Array [
+        "TestCodeDeployASGBC851ECA",
+      ],
+      "Properties": Object {
+        "Name": "AWS-RunShellScript",
+        "Parameters": Object {
+          "commands": Array [
+            "apt -y install dialog apt-utils",
+            "apt -y install software-properties-common",
+            "add-apt-repository -y ppa:ondrej/php",
+            "apt-get update",
+            "apt -y install php7.4",
+            Object {
+              "Fn::Join": Array [
+                "",
+                Array [
+                  "/opt/aws/bin/cfn-signal -e $? -d 'Install php7.4 completed' -r 'Install php7.4 completed' '",
+                  Object {
+                    "Ref": "TestCodeDeploywaitConditionHandler2D874AB4",
+                  },
+                  "'",
+                ],
+              ],
+            },
+          ],
+        },
+        "Targets": Array [
+          Object {
+            "Key": "tag:Name",
+            "Values": Array [
+              "CodeDeployDemo",
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::SSM::Association",
+    },
+    "TestCodeDeployASGconfig4DD7142A": Object {
+      "Properties": Object {
+        "IamInstanceProfile": "CodeDeploy-EC2-Instance-Profile",
+        "ImageId": "ami-02b658ac34935766f",
+        "InstanceType": "t3.micro",
+        "LaunchConfigurationName": "CodeDeployDemo-AS-Configuration",
+        "UserData": Object {
+          "Fn::Base64": Object {
+            "Fn::Join": Array [
+              "
+",
+              Array [
+                "#!/bin/bash -xe
+apt-get update -y
+apt-get install -y python-setuptools
+mkdir -p /opt/aws/bin
+wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+python -m easy_install --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz",
+                Object {
+                  "Fn::Sub": "/opt/aws/bin/cfn-signal -e $? --stack \${AWS::StackName} --resource TestCodeDeployASGBC851ECA --region \${AWS::Region}",
+                },
+              ],
+            ],
+          },
+        },
+      },
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+    },
+    "TestCodeDeployCodeDeployApplication4AF83B0C": Object {
+      "Properties": Object {
+        "ApplicationName": "LumenApp",
+        "ComputePlatform": "Server",
+      },
+      "Type": "AWS::CodeDeploy::Application",
+    },
+    "TestCodeDeployCodeDeployDeploymentGroup120FCE08": Object {
+      "DependsOn": Array [
+        "TestCodeDeployASGBC851ECA",
+      ],
+      "Properties": Object {
+        "ApplicationName": Object {
+          "Ref": "TestCodeDeployCodeDeployApplication4AF83B0C",
+        },
+        "AutoScalingGroups": Array [
+          "ASG-with-codedeploy",
+        ],
+        "DeploymentConfigName": "CodeDeployDefault.OneAtATime",
+        "DeploymentGroupName": "Master",
+        "ServiceRoleArn": Object {
+          "Fn::GetAtt": Array [
+            "TestCodeDeployIAMCodeDeployServiceRole7120AA57",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::CodeDeploy::DeploymentGroup",
+    },
+    "TestCodeDeployIAMCodeDeployEC232F3C48B": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": Object {
+                  "Fn::Join": Array [
+                    "",
+                    Array [
+                      "ec2.",
+                      Object {
+                        "Ref": "AWS::URLSuffix",
+                      },
+                    ],
+                  ],
+                },
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/AmazonSSMManagedInstanceCore",
+              ],
+            ],
+          },
+        ],
+        "Policies": Array [
+          Object {
+            "PolicyDocument": Object {
+              "Statement": Array [
+                Object {
+                  "Action": Array [
+                    "s3:Get*",
+                    "s3:List*",
+                  ],
+                  "Effect": "Allow",
+                  "Resource": Array [
+                    Object {
+                      "Fn::Join": Array [
+                        "",
+                        Array [
+                          "arn:aws:s3:::aws-codedeploy-",
+                          Object {
+                            "Ref": "AWS::Region",
+                          },
+                          "/*",
+                        ],
+                      ],
+                    },
+                    Object {
+                      "Fn::Join": Array [
+                        "",
+                        Array [
+                          "arn:aws:s3:::",
+                          Object {
+                            "Ref": "CodeDeploymentBucket072AA3C8",
+                          },
+                          "/*",
+                        ],
+                      ],
+                    },
+                  ],
+                },
+              ],
+              "Version": "2012-10-17",
+            },
+            "PolicyName": "CodeDeploy-EC2-Permissions",
+          },
+        ],
+        "RoleName": "CodeDeploy-EC2",
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "TestCodeDeployIAMCodeDeployEC2InstanceProfile247C63C8": Object {
+      "Properties": Object {
+        "InstanceProfileName": "CodeDeploy-EC2-Instance-Profile",
+        "Roles": Array [
+          Object {
+            "Ref": "TestCodeDeployIAMCodeDeployEC232F3C48B",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::InstanceProfile",
+    },
+    "TestCodeDeployIAMCodeDeployServiceRole7120AA57": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": Object {
+                  "Fn::Join": Array [
+                    "",
+                    Array [
+                      "codedeploy.",
+                      Object {
+                        "Ref": "AWS::Region",
+                      },
+                      ".amazonaws.com",
+                    ],
+                  ],
+                },
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSCodeDeployRole",
+              ],
+            ],
+          },
+        ],
+        "Policies": Array [
+          Object {
+            "PolicyDocument": Object {
+              "Statement": Array [
+                Object {
+                  "Action": Array [
+                    "ec2:RunInstances",
+                    "ec2:CreateTags",
+                    "iam:PassRole",
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "*",
+                },
+              ],
+              "Version": "2012-10-17",
+            },
+            "PolicyName": "auto-scaling-group-with-launch-template",
+          },
+        ],
+        "RoleName": "CodeDeployServiceRole",
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "TestCodeDeployIAMPushS3BucketForCodeDeploy1AC65A3F": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "s3:PutObject",
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::Join": Array [
+                  "",
+                  Array [
+                    "arn:aws:s3:::",
+                    Object {
+                      "Ref": "CodeDeploymentBucket072AA3C8",
+                    },
+                    "/*",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "PushS3BucketForCodeDeploy",
+        "Users": Array [
+          Object {
+            "Ref": "TestCodeDeployIAMTravisCIUserCodedeployAppC2FB33F4",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "TestCodeDeployIAMTravisCIUserCodedeployAppC2FB33F4": Object {
+      "Properties": Object {
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/AWSCodeDeployDeployerAccess",
+              ],
+            ],
+          },
+        ],
+        "UserName": "TravisCiUser-Codedeploy-App",
+      },
+      "Type": "AWS::IAM::User",
+    },
+    "TestCodeDeploycodedeployvpcB845E049": Object {
+      "Properties": Object {
+        "CidrBlock": "10.0.0.0/16",
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "InstanceTenancy": "default",
+        "Tags": Array [
+          Object {
+            "Key": "Name",
+            "Value": "Default/TestCodeDeploy/codedeploy-vpc",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::VPC",
+    },
+    "TestCodeDeploycodedeployvpcIGWC25FF532": Object {
+      "Properties": Object {
+        "Tags": Array [
+          Object {
+            "Key": "Name",
+            "Value": "Default/TestCodeDeploy/codedeploy-vpc",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::InternetGateway",
+    },
+    "TestCodeDeploycodedeployvpcIsolatedSubnet1RouteTable85D517A9": Object {
+      "Properties": Object {
+        "Tags": Array [
+          Object {
+            "Key": "Name",
+            "Value": "Default/TestCodeDeploy/codedeploy-vpc/IsolatedSubnet1",
+          },
+        ],
+        "VpcId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcB845E049",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "TestCodeDeploycodedeployvpcIsolatedSubnet1RouteTableAssociationEF236648": Object {
+      "Properties": Object {
+        "RouteTableId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcIsolatedSubnet1RouteTable85D517A9",
+        },
+        "SubnetId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcIsolatedSubnet1Subnet5D5523D6",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "TestCodeDeploycodedeployvpcIsolatedSubnet1Subnet5D5523D6": Object {
+      "Properties": Object {
+        "AvailabilityZone": Object {
+          "Fn::Select": Array [
+            0,
+            Object {
+              "Fn::GetAZs": "",
+            },
+          ],
+        },
+        "CidrBlock": "10.0.128.0/18",
+        "MapPublicIpOnLaunch": false,
+        "Tags": Array [
+          Object {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Isolated",
+          },
+          Object {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Isolated",
+          },
+          Object {
+            "Key": "Name",
+            "Value": "Default/TestCodeDeploy/codedeploy-vpc/IsolatedSubnet1",
+          },
+        ],
+        "VpcId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcB845E049",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "TestCodeDeploycodedeployvpcIsolatedSubnet2RouteTable6F36BA34": Object {
+      "Properties": Object {
+        "Tags": Array [
+          Object {
+            "Key": "Name",
+            "Value": "Default/TestCodeDeploy/codedeploy-vpc/IsolatedSubnet2",
+          },
+        ],
+        "VpcId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcB845E049",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "TestCodeDeploycodedeployvpcIsolatedSubnet2RouteTableAssociation2A651116": Object {
+      "Properties": Object {
+        "RouteTableId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcIsolatedSubnet2RouteTable6F36BA34",
+        },
+        "SubnetId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcIsolatedSubnet2SubnetEBF50F33",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "TestCodeDeploycodedeployvpcIsolatedSubnet2SubnetEBF50F33": Object {
+      "Properties": Object {
+        "AvailabilityZone": Object {
+          "Fn::Select": Array [
+            1,
+            Object {
+              "Fn::GetAZs": "",
+            },
+          ],
+        },
+        "CidrBlock": "10.0.192.0/18",
+        "MapPublicIpOnLaunch": false,
+        "Tags": Array [
+          Object {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Isolated",
+          },
+          Object {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Isolated",
+          },
+          Object {
+            "Key": "Name",
+            "Value": "Default/TestCodeDeploy/codedeploy-vpc/IsolatedSubnet2",
+          },
+        ],
+        "VpcId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcB845E049",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "TestCodeDeploycodedeployvpcPublicSubnet1DefaultRoute5C87CF10": Object {
+      "DependsOn": Array [
+        "TestCodeDeploycodedeployvpcVPCGW45C29E12",
+      ],
+      "Properties": Object {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcIGWC25FF532",
+        },
+        "RouteTableId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcPublicSubnet1RouteTableC5194D7B",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "TestCodeDeploycodedeployvpcPublicSubnet1RouteTableAssociationF381DDD8": Object {
+      "Properties": Object {
+        "RouteTableId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcPublicSubnet1RouteTableC5194D7B",
+        },
+        "SubnetId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcPublicSubnet1Subnet51FFA180",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "TestCodeDeploycodedeployvpcPublicSubnet1RouteTableC5194D7B": Object {
+      "Properties": Object {
+        "Tags": Array [
+          Object {
+            "Key": "Name",
+            "Value": "Default/TestCodeDeploy/codedeploy-vpc/PublicSubnet1",
+          },
+        ],
+        "VpcId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcB845E049",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "TestCodeDeploycodedeployvpcPublicSubnet1Subnet51FFA180": Object {
+      "Properties": Object {
+        "AvailabilityZone": Object {
+          "Fn::Select": Array [
+            0,
+            Object {
+              "Fn::GetAZs": "",
+            },
+          ],
+        },
+        "CidrBlock": "10.0.0.0/18",
+        "MapPublicIpOnLaunch": true,
+        "Tags": Array [
+          Object {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Public",
+          },
+          Object {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Public",
+          },
+          Object {
+            "Key": "Name",
+            "Value": "Default/TestCodeDeploy/codedeploy-vpc/PublicSubnet1",
+          },
+        ],
+        "VpcId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcB845E049",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "TestCodeDeploycodedeployvpcPublicSubnet2DefaultRouteD3D2E029": Object {
+      "DependsOn": Array [
+        "TestCodeDeploycodedeployvpcVPCGW45C29E12",
+      ],
+      "Properties": Object {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcIGWC25FF532",
+        },
+        "RouteTableId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcPublicSubnet2RouteTableA5E07188",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "TestCodeDeploycodedeployvpcPublicSubnet2RouteTableA5E07188": Object {
+      "Properties": Object {
+        "Tags": Array [
+          Object {
+            "Key": "Name",
+            "Value": "Default/TestCodeDeploy/codedeploy-vpc/PublicSubnet2",
+          },
+        ],
+        "VpcId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcB845E049",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "TestCodeDeploycodedeployvpcPublicSubnet2RouteTableAssociationCE3AEC6F": Object {
+      "Properties": Object {
+        "RouteTableId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcPublicSubnet2RouteTableA5E07188",
+        },
+        "SubnetId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcPublicSubnet2SubnetF4BAFFC8",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "TestCodeDeploycodedeployvpcPublicSubnet2SubnetF4BAFFC8": Object {
+      "Properties": Object {
+        "AvailabilityZone": Object {
+          "Fn::Select": Array [
+            1,
+            Object {
+              "Fn::GetAZs": "",
+            },
+          ],
+        },
+        "CidrBlock": "10.0.64.0/18",
+        "MapPublicIpOnLaunch": true,
+        "Tags": Array [
+          Object {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Public",
+          },
+          Object {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Public",
+          },
+          Object {
+            "Key": "Name",
+            "Value": "Default/TestCodeDeploy/codedeploy-vpc/PublicSubnet2",
+          },
+        ],
+        "VpcId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcB845E049",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "TestCodeDeploycodedeployvpcVPCGW45C29E12": Object {
+      "Properties": Object {
+        "InternetGatewayId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcIGWC25FF532",
+        },
+        "VpcId": Object {
+          "Ref": "TestCodeDeploycodedeployvpcB845E049",
+        },
+      },
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+    },
+    "TestCodeDeploywaitCondition4E1C69DB": Object {
+      "DependsOn": Array [
+        "TestCodeDeployASGSSMPHPAA77B390",
+      ],
+      "Properties": Object {
+        "Handle": Object {
+          "Ref": "TestCodeDeploywaitConditionHandler2D874AB4",
+        },
+        "Timeout": "1200",
+      },
+      "Type": "AWS::CloudFormation::WaitCondition",
+    },
+    "TestCodeDeploywaitConditionHandler2D874AB4": Object {
+      "Type": "AWS::CloudFormation::WaitConditionHandle",
+    },
+  },
+}
+`;
