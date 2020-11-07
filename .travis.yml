@@ -16,7 +16,9 @@ install:
   - make install
 
 script:
+  - make lint
   - make build
+  - make test
 
 before_deploy:
   - make bootstrap

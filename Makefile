@@ -28,3 +28,11 @@ deploy:
 		while true; do echo "====[ still running ]====" ; sleep 60 ; done & \
 	fi
 	@cdk deploy --require-approval never -c region=${DEPLOY_REGION}
+
+.PHONY: test
+test:
+	npm test
+
+.PHONY: lint
+lint:
+	@npm run lint	
